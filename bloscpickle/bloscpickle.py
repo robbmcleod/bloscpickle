@@ -62,8 +62,6 @@ if sys.version_info < (2,8):
 try:
     import msgpack
     _picklers['msgpack'] =  msgpack
-    msgpack.dump = msgpack.pack
-    msgpack.loads = msgpack.unpackb
 except ImportError:
     pass
 
