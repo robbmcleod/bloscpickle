@@ -66,7 +66,7 @@ except ImportError:
     pass
 
 _defaultPickler = pickle
-_defaultBlocksize = 65536
+_defaultBlocksize = 0 # a value of zero let's blosc pick the blocksize
 blosc.set_blocksize(_defaultBlocksize)
 # Allow blosc to handle the default number of threads
 _defaultCompressor = 'zstd'
@@ -82,7 +82,8 @@ def set_pickler( pickler='pickle' ):
     except:
         raise KeyError( "Unknown/unfound pickler: {}".format(pickler) )
 
-def set_blocksize( blocksize=65536 ):
+def set_blocksize( blocksize=0 ):
+    # a value of zero let's blosc pick the blocksize
     blosc.set_blocksize( blocksize )
     
 def set_nthreads( nthreads = 1 ):
