@@ -8,6 +8,7 @@ Created on Wed Dec 28 11:47:37 2016
 import bloscpickle
 import json
 import ujson
+import rapidjson
 import pickle
 import marshal 
 import msgpack
@@ -72,10 +73,23 @@ def testUUID():
                     t1 = time()
                     outDict = pickler.load( stream )
                     read[picklerName] = time() - t1
-                if pickler is msgpack:
-                    print( "WARNING: {} failed in/out assert test".format(picklerName) )
-                else:
+                try:
                     assert( testDict == outDict )
+                except:
+                    print( "WARNING: {} failed in/out assert test".format(picklerName) )
+            elif pickler == rapidjson:
+                with open( filename, 'w' ) as stream:
+                    t0 = time()
+                    stream.write( pickler.dumps( testDict, **pickler_kwargs ) )
+                    write[picklerName] = time() - t0  
+                with open( filename, 'r' ) as stream:
+                    t1 = time()
+                    outDict = rapidjson.loads( stream.read() )
+                    read[picklerName] = time() - t1
+                try:
+                    assert( testDict == outDict )
+                except:
+                    print( "WARNING: {} failed in/out assert test".format(picklerName) )
             else:
                 with open( filename, 'w' ) as stream:
                     t0 = time()
@@ -86,7 +100,10 @@ def testUUID():
                     t1 = time()
                     outDict = pickler.load( stream )
                     read[picklerName] = time() - t1
-                assert( testDict == outDict )
+                try:
+                    assert( testDict == outDict )
+                except:
+                    print( "WARNING: {} failed in/out assert test".format(picklerName) )
         
         sizes[picklerName] = os.path.getsize( filename ) / MB
         os.remove( filename )
@@ -99,13 +116,17 @@ def testUUID():
     execTest( testDict, pickle, useBlosc=True, compressor='zstd', clevel=1 )
     execTest( testDict, pickle, useBlosc=True, compressor='lz4', clevel=9 )
     
-    execTest( testDict, marshal )
-    execTest( testDict, marshal, useBlosc=True, compressor='zstd', clevel=1 )
-    execTest( testDict, marshal, useBlosc=True, compressor='lz4', clevel=9 )
+#    execTest( testDict, marshal )
+#    execTest( testDict, marshal, useBlosc=True, compressor='zstd', clevel=1 )
+#    execTest( testDict, marshal, useBlosc=True, compressor='lz4', clevel=9 )
     
     execTest( testDict, json, ensure_ascii=False )
     execTest( testDict, json, useBlosc=True, compressor='zstd', clevel=1, ensure_ascii=False )
     execTest( testDict, json, useBlosc=True, compressor='lz4', clevel=9, ensure_ascii=False )
+    
+    execTest( testDict, rapidjson )
+    execTest( testDict, rapidjson, useBlosc=True, compressor='zstd', clevel=1 )
+    execTest( testDict, rapidjson, useBlosc=True, compressor='lz4', clevel=9 )
     
     execTest( testDict, ujson, ensure_ascii=False )
     execTest( testDict, ujson, useBlosc=True, compressor='zstd', clevel=1, ensure_ascii=False )
@@ -136,11 +157,11 @@ def testUUID():
     plt.savefig( "bloscpickle_uuid_writerate.png"  )
     
     uncompressed_reads = [read['pickle'], read['marshal'], read['json'], 
-                          read['ujson'], read['msgpack'] ]
+                          read['rapidjson'], read['ujson'], read['msgpack'] ]
     zstd_reads =  [read['blosc_zstd1_pickle'],read['blosc_zstd1_marshal'], read['blosc_zstd1_json'],
-                    read['blosc_zstd1_ujson'], read['blosc_zstd1_msgpack'] ]
+                   read['blosc_zstd1_rapidjson'], read['blosc_zstd1_ujson'], read['blosc_zstd1_msgpack'] ]
     lz4_reads =  [read['blosc_lz49_pickle'],read['blosc_lz49_marshal'], read['blosc_lz49_json'],
-                    read['blosc_lz49_ujson'], read['blosc_lz49_msgpack'] ]
+                  read['blosc_lz49_rapidjson'], read['blosc_lz49_ujson'], read['blosc_lz49_msgpack'] ]
 
 
     indices = np.arange(5)
@@ -152,7 +173,7 @@ def testUUID():
     ax.set_ylabel( "Serialization read from disk time (s)" )
     #ax.set_title( "German dictionary with 326980 words" )
     ax.set_xticks( indices + 0.33 )
-    ax.set_xticklabels( ('pickle','marshal','json','ujson','msgpack') ) 
+    ax.set_xticklabels( ('pickle','marshal','json', 'rapidjson', 'ujson','msgpack') ) 
     ax.legend( (bars_uncomp,bars_zstd,bars_lz4), ('uncompressed', 'zstd','lz4'), loc='best' )
     plt.savefig( "bloscpickle_uuid_readrate.png"  )
     
@@ -170,9 +191,8 @@ def testUUID():
     bars_zstd2 = ax2.bar( indices+bwidth, zstd_sizes, bwidth, color='orange'  )
     bars_lz42 = ax2.bar( indices+2*bwidth, lz4_sizes, bwidth, color='purple'  )
     ax2.set_ylabel( "Disk usage (MB)" )
-    #ax2.set_title( "German dictionary with 326980 words" )
     ax2.set_xticks( indices + 0.33 )
-    ax2.set_xticklabels( ('pickle','marshal','json','ujson','msgpack') ) 
+    ax2.set_xticklabels( ('pickle','marshal','json','rapidjson','ujson','msgpack') ) 
     ax2.legend( (bars_uncomp2,bars_zstd2,bars_lz42), ('uncompressed', 'zstd','lz4'), loc='best' )
     plt.savefig( "bloscpickle_uuid_disksize.png"  )
     
@@ -258,9 +278,9 @@ def testJSON():
     execTest( testDict, pickle, useBlosc=True, compressor='zstd', clevel=1 )
     execTest( testDict, pickle, useBlosc=True, compressor='lz4', clevel=9 )
     
-    execTest( testDict, marshal )
-    execTest( testDict, marshal, useBlosc=True, compressor='zstd', clevel=1 )
-    execTest( testDict, marshal, useBlosc=True, compressor='lz4', clevel=9 )
+#    execTest( testDict, marshal )
+#    execTest( testDict, marshal, useBlosc=True, compressor='zstd', clevel=1 )
+#    execTest( testDict, marshal, useBlosc=True, compressor='lz4', clevel=9 )
     
     execTest( testDict, json, ensure_ascii=False )
     execTest( testDict, json, useBlosc=True, compressor='zstd', clevel=1, ensure_ascii=False )

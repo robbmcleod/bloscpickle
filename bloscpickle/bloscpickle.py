@@ -17,6 +17,7 @@ bloscpickle is compatible with the following Python serialization modules:
 * `json`
 * `jsonpickle`
 * `ujson`
+* `rapidjson`
 * `msgpack-python`
 
 
@@ -47,6 +48,11 @@ _picklers['marshal'] = marshal
 try:
     import ujson
     _picklers['ujson'] =  ujson
+except ImportError:
+    pass
+try:
+    import rapidjson
+    _picklers['rapidjson'] =  rapidjson
 except ImportError:
     pass
 
