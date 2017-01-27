@@ -32,7 +32,7 @@ TODO: Can we pass blosc a ByteIO instead of a byte object?
 """
 ####### INITIALIZATION ON IMPORT ######
 import sys # TODO: add support for Python 2.7
-import pickle, json, marshal
+import pickle, json, marshal, rapidjson
 import blosc
 NOSHUFFLE = blosc.NOSHUFFLE
 SHUFFLE = blosc.SHUFFLE
@@ -138,6 +138,13 @@ def dump( pyObject, stream, pickler=None, compressor=None,
         pickler.dump( pyObject, bloscStream, **pickler_args )
         stream.write( blosc.compress( bloscStream.getvalue(), \
                     typesize=1, clevel=clevel, shuffle=shuffle, cname=compressor ) )
+        
+#    elif pickler == rapidjson:
+#        # rapidjson's stream interface is not a proper io.StringIO object, so
+#        # we have to use dumps
+#        stream.write(  blosc.compress( pickler.dumps(pyObject, **pickler_args).encode('utf-8'), \
+#                    typesize=1, clevel=clevel, shuffle=shuffle, cname=compressor ) )
+        
     else: # JSON works with Unicode, not Bytes
         bloscStream = StringIO()
         pickler.dump( pyObject, bloscStream, **pickler_args )
@@ -175,6 +182,11 @@ def dumps(pyObject, pickler=None, compressor=None,
         pickler.dump( pyObject, bloscStream, **pickler_args )
         return blosc.compress( bloscStream.getvalue(), \
                     typesize=1, clevel=clevel, shuffle=shuffle, cname=compressor )
+#    elif pickler == rapidjson:
+#        # rapidjson's stream interface is not a proper io.StringIO object, so
+#        # we have to use dumps
+#        return blosc.compress( pickler.dumps(pyObject, **pickler_args), \
+#                    typesize=1, clevel=clevel, shuffle=shuffle, cname=compressor )
     else: # JSON works with Unicode, not Bytes
         bloscStream = StringIO()
         pickler.dump( pyObject, bloscStream, **pickler_args )

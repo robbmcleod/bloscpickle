@@ -77,19 +77,6 @@ def testUUID():
                     assert( testDict == outDict )
                 except:
                     print( "WARNING: {} failed in/out assert test".format(picklerName) )
-            elif pickler == rapidjson:
-                with open( filename, 'w' ) as stream:
-                    t0 = time()
-                    stream.write( pickler.dumps( testDict, **pickler_kwargs ) )
-                    write[picklerName] = time() - t0  
-                with open( filename, 'r' ) as stream:
-                    t1 = time()
-                    outDict = rapidjson.loads( stream.read() )
-                    read[picklerName] = time() - t1
-                try:
-                    assert( testDict == outDict )
-                except:
-                    print( "WARNING: {} failed in/out assert test".format(picklerName) )
             else:
                 with open( filename, 'w' ) as stream:
                     t0 = time()
@@ -116,9 +103,9 @@ def testUUID():
     execTest( testDict, pickle, useBlosc=True, compressor='zstd', clevel=1 )
     execTest( testDict, pickle, useBlosc=True, compressor='lz4', clevel=9 )
     
-#    execTest( testDict, marshal )
-#    execTest( testDict, marshal, useBlosc=True, compressor='zstd', clevel=1 )
-#    execTest( testDict, marshal, useBlosc=True, compressor='lz4', clevel=9 )
+    execTest( testDict, marshal )
+    execTest( testDict, marshal, useBlosc=True, compressor='zstd', clevel=1 )
+    execTest( testDict, marshal, useBlosc=True, compressor='lz4', clevel=9 )
     
     execTest( testDict, json, ensure_ascii=False )
     execTest( testDict, json, useBlosc=True, compressor='zstd', clevel=1, ensure_ascii=False )
@@ -132,19 +119,19 @@ def testUUID():
     execTest( testDict, ujson, useBlosc=True, compressor='zstd', clevel=1, ensure_ascii=False )
     execTest( testDict, ujson, useBlosc=True, compressor='lz4', clevel=9, ensure_ascii=False )
     
-    execTest( testDict, msgpack )
-    execTest( testDict, msgpack, useBlosc=True, compressor='zstd', clevel=1 )
-    execTest( testDict, msgpack, useBlosc=True, compressor='lz4', clevel=9 )
+    execTest( testDict, msgpack, use_bin_type=False )
+    execTest( testDict, msgpack, useBlosc=True, compressor='zstd', clevel=1, use_bin_type=False )
+    execTest( testDict, msgpack, useBlosc=True, compressor='lz4', clevel=9, use_bin_type=False )
     
     uncompressed_writes = [write['pickle'], write['marshal'], write['json'], 
-                          write['ujson'], write['msgpack'] ]
+                          write['rapidjson'], write['ujson'], write['msgpack'] ]
     zstd_writes =  [write['blosc_zstd1_pickle'],write['blosc_zstd1_marshal'], write['blosc_zstd1_json'],
-                    write['blosc_zstd1_ujson'], write['blosc_zstd1_msgpack'] ]
+                    write['blosc_zstd1_rapidjson'], write['blosc_zstd1_ujson'], write['blosc_zstd1_msgpack'] ]
     lz4_writes =  [write['blosc_lz49_pickle'],write['blosc_lz49_marshal'], write['blosc_lz49_json'],
-                    write['blosc_lz49_ujson'], write['blosc_lz49_msgpack'] ]
+                    write['blosc_zstd1_rapidjson'], write['blosc_lz49_ujson'], write['blosc_lz49_msgpack'] ]
 
 
-    indices = np.arange(5)
+    indices = np.arange(6)
     bwidth = 0.25
     fig, ax = plt.subplots( figsize=(10,8) )
     bars_uncomp = ax.bar( indices, uncompressed_writes, bwidth, color='steelblue'  )
@@ -152,7 +139,7 @@ def testUUID():
     bars_lz4 = ax.bar( indices+2*bwidth, lz4_writes, bwidth, color='purple'  )
     ax.set_ylabel( "Serialization write to disk time (s)" )
     ax.set_xticks( indices + 0.33 )
-    ax.set_xticklabels( ('pickle','marshal','json','ujson','msgpack') ) 
+    ax.set_xticklabels( ('pickle','marshal','json','rapidjson','ujson','msgpack') ) 
     ax.legend( (bars_uncomp,bars_zstd,bars_lz4), ('uncompressed', 'zstd','lz4'), loc='best' )
     plt.savefig( "bloscpickle_uuid_writerate.png"  )
     
@@ -163,9 +150,6 @@ def testUUID():
     lz4_reads =  [read['blosc_lz49_pickle'],read['blosc_lz49_marshal'], read['blosc_lz49_json'],
                   read['blosc_lz49_rapidjson'], read['blosc_lz49_ujson'], read['blosc_lz49_msgpack'] ]
 
-
-    indices = np.arange(5)
-    bwidth = 0.25
     fig, ax = plt.subplots( figsize=(10,8) )
     bars_uncomp = ax.bar( indices, uncompressed_reads, bwidth, color='steelblue'  )
     bars_zstd = ax.bar( indices+bwidth, zstd_reads, bwidth, color='orange'  )
@@ -180,11 +164,11 @@ def testUUID():
     
     
     uncompressed_sizes = [sizes['pickle'], sizes['marshal'], sizes['json'], 
-                          sizes['ujson'], sizes['msgpack'] ]
+                          sizes['rapidjson'], sizes['ujson'], sizes['msgpack'] ]
     zstd_sizes =  [sizes['blosc_zstd1_pickle'],sizes['blosc_zstd1_marshal'], sizes['blosc_zstd1_json'],
-                    sizes['blosc_zstd1_ujson'], sizes['blosc_zstd1_msgpack'] ]
+                    sizes['blosc_zstd1_rapidjson'], sizes['blosc_zstd1_ujson'], sizes['blosc_zstd1_msgpack'] ]
     lz4_sizes =  [sizes['blosc_lz49_pickle'],sizes['blosc_lz49_marshal'], sizes['blosc_lz49_json'],
-                    sizes['blosc_lz49_ujson'], sizes['blosc_lz49_msgpack'] ]
+                    sizes['blosc_lz49_rapidjson'], sizes['blosc_lz49_ujson'], sizes['blosc_lz49_msgpack'] ]
 
     fig2, ax2 = plt.subplots( figsize=(10,8) )
     bars_uncomp2 = ax2.bar( indices, uncompressed_sizes, bwidth, color='steelblue'  )
@@ -278,32 +262,37 @@ def testJSON():
     execTest( testDict, pickle, useBlosc=True, compressor='zstd', clevel=1 )
     execTest( testDict, pickle, useBlosc=True, compressor='lz4', clevel=9 )
     
-#    execTest( testDict, marshal )
-#    execTest( testDict, marshal, useBlosc=True, compressor='zstd', clevel=1 )
-#    execTest( testDict, marshal, useBlosc=True, compressor='lz4', clevel=9 )
+    execTest( testDict, marshal )
+    execTest( testDict, marshal, useBlosc=True, compressor='zstd', clevel=1 )
+    execTest( testDict, marshal, useBlosc=True, compressor='lz4', clevel=9 )
     
     execTest( testDict, json, ensure_ascii=False )
     execTest( testDict, json, useBlosc=True, compressor='zstd', clevel=1, ensure_ascii=False )
     execTest( testDict, json, useBlosc=True, compressor='lz4', clevel=9, ensure_ascii=False )
     
+    execTest( testDict, rapidjson )
+    execTest( testDict, rapidjson, useBlosc=True, compressor='zstd', clevel=1 )
+    execTest( testDict, rapidjson, useBlosc=True, compressor='lz4', clevel=9 )
+    
     # Testing here to try and find what broke on read/write for UltraJSON.
+    # Probably floating point precision
     outDict = execTest( testDict, ujson, encode_html_chars=True )
     execTest( testDict, ujson, useBlosc=True, compressor='zstd', clevel=1, encode_html_chars=True )
     execTest( testDict, ujson, useBlosc=True, compressor='lz4', clevel=9, encode_html_chars=True )
     
-    execTest( testDict, msgpack )
-    execTest( testDict, msgpack, useBlosc=True, compressor='zstd', clevel=1 )
-    execTest( testDict, msgpack, useBlosc=True, compressor='lz4', clevel=9 )
+    execTest( testDict, msgpack, use_bin_type=False )
+    execTest( testDict, msgpack, useBlosc=True, compressor='zstd', clevel=1, use_bin_type=False )
+    execTest( testDict, msgpack, useBlosc=True, compressor='lz4', clevel=9, use_bin_type=False )
     
     uncompressed_writes = [write['pickle'], write['marshal'], write['json'], 
-                          write['ujson'], write['msgpack'] ]
+                          write['rapidjson'], write['ujson'], write['msgpack'] ]
     zstd_writes =  [write['blosc_zstd1_pickle'],write['blosc_zstd1_marshal'], write['blosc_zstd1_json'],
-                    write['blosc_zstd1_ujson'], write['blosc_zstd1_msgpack'] ]
+                    write['blosc_zstd1_rapidjson'], write['blosc_zstd1_ujson'], write['blosc_zstd1_msgpack'] ]
     lz4_writes =  [write['blosc_lz49_pickle'],write['blosc_lz49_marshal'], write['blosc_lz49_json'],
-                    write['blosc_lz49_ujson'], write['blosc_lz49_msgpack'] ]
+                    write['blosc_zstd1_rapidjson'], write['blosc_lz49_ujson'], write['blosc_lz49_msgpack'] ]
 
 
-    indices = np.arange(5)
+    indices = np.arange(6)
     bwidth = 0.25
     fig, ax = plt.subplots( figsize=(10,8) )
     bars_uncomp = ax.bar( indices, uncompressed_writes, bwidth, color='steelblue'  )
@@ -311,20 +300,17 @@ def testJSON():
     bars_lz4 = ax.bar( indices+2*bwidth, lz4_writes, bwidth, color='purple'  )
     ax.set_ylabel( "Serialization write to disk time (s)" )
     ax.set_xticks( indices + 0.33 )
-    ax.set_xticklabels( ('pickle','marshal','json','ujson','msgpack') ) 
+    ax.set_xticklabels( ('pickle','marshal','json', 'rapidjson', 'ujson','msgpack') ) 
     ax.legend( (bars_uncomp,bars_zstd,bars_lz4), ('uncompressed', 'zstd','lz4'), loc='best' )
-    plt.savefig( "bloscpickle_json_writerate.png"  )
+    plt.savefig( "bloscpickle_jsongen_writerate.png"  )
     
     uncompressed_reads = [read['pickle'], read['marshal'], read['json'], 
-                          read['ujson'], read['msgpack'] ]
+                          read['rapidjson'], read['ujson'], read['msgpack'] ]
     zstd_reads =  [read['blosc_zstd1_pickle'],read['blosc_zstd1_marshal'], read['blosc_zstd1_json'],
-                    read['blosc_zstd1_ujson'], read['blosc_zstd1_msgpack'] ]
+                   read['blosc_zstd1_rapidjson'], read['blosc_zstd1_ujson'], read['blosc_zstd1_msgpack'] ]
     lz4_reads =  [read['blosc_lz49_pickle'],read['blosc_lz49_marshal'], read['blosc_lz49_json'],
-                    read['blosc_lz49_ujson'], read['blosc_lz49_msgpack'] ]
+                  read['blosc_lz49_rapidjson'], read['blosc_lz49_ujson'], read['blosc_lz49_msgpack'] ]
 
-
-    indices = np.arange(5)
-    bwidth = 0.25
     fig, ax = plt.subplots( figsize=(10,8) )
     bars_uncomp = ax.bar( indices, uncompressed_reads, bwidth, color='steelblue'  )
     bars_zstd = ax.bar( indices+bwidth, zstd_reads, bwidth, color='orange'  )
@@ -332,30 +318,28 @@ def testJSON():
     ax.set_ylabel( "Serialization read from disk time (s)" )
     #ax.set_title( "German dictionary with 326980 words" )
     ax.set_xticks( indices + 0.33 )
-    ax.set_xticklabels( ('pickle','marshal','json','ujson','msgpack') ) 
+    ax.set_xticklabels( ('pickle','marshal','json', 'rapidjson', 'ujson','msgpack') ) 
     ax.legend( (bars_uncomp,bars_zstd,bars_lz4), ('uncompressed', 'zstd','lz4'), loc='best' )
-    plt.savefig( "bloscpickle_json_readrate.png"  )
+    plt.savefig( "bloscpickle_jsongen_readrate.png"  )
     
     
     
     uncompressed_sizes = [sizes['pickle'], sizes['marshal'], sizes['json'], 
-                          sizes['ujson'], sizes['msgpack'] ]
+                          sizes['rapidjson'], sizes['ujson'], sizes['msgpack'] ]
     zstd_sizes =  [sizes['blosc_zstd1_pickle'],sizes['blosc_zstd1_marshal'], sizes['blosc_zstd1_json'],
-                    sizes['blosc_zstd1_ujson'], sizes['blosc_zstd1_msgpack'] ]
+                    sizes['blosc_zstd1_rapidjson'], sizes['blosc_zstd1_ujson'], sizes['blosc_zstd1_msgpack'] ]
     lz4_sizes =  [sizes['blosc_lz49_pickle'],sizes['blosc_lz49_marshal'], sizes['blosc_lz49_json'],
-                    sizes['blosc_lz49_ujson'], sizes['blosc_lz49_msgpack'] ]
+                    sizes['blosc_lz49_rapidjson'], sizes['blosc_lz49_ujson'], sizes['blosc_lz49_msgpack'] ]
 
     fig2, ax2 = plt.subplots( figsize=(10,8) )
     bars_uncomp2 = ax2.bar( indices, uncompressed_sizes, bwidth, color='steelblue'  )
     bars_zstd2 = ax2.bar( indices+bwidth, zstd_sizes, bwidth, color='orange'  )
     bars_lz42 = ax2.bar( indices+2*bwidth, lz4_sizes, bwidth, color='purple'  )
     ax2.set_ylabel( "Disk usage (MB)" )
-    #ax2.set_title( "German dictionary with 326980 words" )
     ax2.set_xticks( indices + 0.33 )
-    ax2.set_xticklabels( ('pickle','marshal','json','ujson','msgpack') ) 
+    ax2.set_xticklabels( ('pickle','marshal','json','rapidjson','ujson','msgpack') ) 
     ax2.legend( (bars_uncomp2,bars_zstd2,bars_lz42), ('uncompressed', 'zstd','lz4'), loc='best' )
-    plt.savefig( "bloscpickle_json_disksize.png"  )
-
+    plt.savefig( "bloscpickle_jsongen_disksize.png"  )
     pass
     
 if __name__ == "__main__":
